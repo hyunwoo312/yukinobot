@@ -4,6 +4,7 @@ import discord
 import requests
 from yukino import manager
 import secrets
+from pydub import AudioSegment
 # import ffmpeg
 
 @bot.command()
@@ -22,6 +23,8 @@ async def _convert(ctx, url):
             # webm = ffmpeg.input(r.content)
             # audiofile = ffmpeg.output(webm.audio, )
             # file.write(r.content)
+        audio = AudioSegment.from_file(filename, "webm")
+        audio.export("asd.mp3", format="mp3")
         await ctx.send('done!, you may now access the file: {filename}',\
              file=discord.File('README.md', spoiler=True)) 
 
