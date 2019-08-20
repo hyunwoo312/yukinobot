@@ -1,14 +1,17 @@
 from yukino import bot
 from discord.ext import commands
+import discord
+import requests
+from yukino import manager
 
 @bot.command()
 async def test(ctx, *, arg):
     await ctx.send(arg)
+    # await ctx.send(bot.users)
+    #print(ctx)
 
-@bot.command()
-@commands.is_owner()  # The account that owns the bot
-async def dm(ctx):
-    memberID = "ID OF RECIPIENT"
-    person = await bot.get_user_info(memberID)
-    await bot.send_message(person, "WHAT I'D LIKE TO SAY TO THEM")
-    await bot.delete_message(ctx.message)
+@bot.command(aliases=['conv', 'convert'])
+async def _convert(ctx, url):
+    async with ctx.typing():
+        r = requests.get(url, allow_redirects=True)
+        open('test.webm', 'wb').write(r.content)
