@@ -12,14 +12,14 @@ async def on_typing(channel, user, when):
     '''
     if user.id != 611058665503588356:
         async with channel.typing():
-            sleep(3)
+            sleep(1)
             await channel.send('uwu')
 
-@bot.event
-async def on_message(msg):
-    if msg.content.lower()=='nani':
-        return print('wow this kid cool')
-    print(f'{msg.author.id}, {msg.channel}')
+# @bot.event
+# async def on_message(msg):
+#     if msg.content.lower()=='nani':
+#         await print('wow this kid cool')
+#     await msg.channel.send('{msg.author.id}, {msg.channel}, {msg.content}')
 
 
 # @bot.event
