@@ -9,6 +9,7 @@ from pydub.utils import which
 from os import listdir
 from discord.utils import get
 import os
+import random
 # import ffmpeg
 audiodir = 'yukino/data/audiofiles/'
 webmdir = 'yukino/data/webmcache/'
@@ -51,9 +52,18 @@ def converttoaudio(ftype, url, filename=secrets.token_hex(16), directory=audiodi
                     file.write(r.content)
             audio = AudioSegment.from_file(webmfile, 'webm')
             audio.export(audiofile, format=ext[1:])
+            cachemanager(webmdir) # deleting webm files cz they r huge;; audio files are tiny in comparison
         return discord.File(audiofile, spoiler=False)
     except:
         return None
+
+def cachemanager(directory):
+    cachesize = 0
+    for file in os.listdir(directory):
+        cachesize += os.path.getsize(directory+file)
+    if cachesize >= 200000000:
+        os.remove(directory+os.listdir(directory)[random.randint(0,3)])
+        print('cacheresized')
     
 @bot.command()
 async def test(ctx, *, arg):
@@ -79,7 +89,7 @@ async def _convert(ctx, url):
 async def clear(ctx, amount=1):
     await ctx.channel.purge(limit=amount)
 
-@bot.command(pass_context=True)
+@bot.command()
 async def play(ctx, url: str):
 	
 	# If Song.mp3 exists, True.
@@ -92,7 +102,7 @@ async def play(ctx, url: str):
 		await ctx.send(f"Removed Old Song file")
 
 
-@bot.command(pass_context=True)
+@bot.command()
 async def connect(ctx):
 	global voice
 	
@@ -120,7 +130,7 @@ async def connect(ctx):
 	#else:
 	#	voice = await channel.connect()
 
-@bot.command(pass_context=True,aliases=['dc', 'disc'])
+@bot.command(aliases=['dc', 'disc'])
 async def disconnect(ctx):
 
 	# gets the Channel we're in
@@ -130,7 +140,7 @@ async def disconnect(ctx):
 	# If Yukino is already in a different voice channel and is connected, disconnect it
 	if voice and voice.is_connected():
 		await voice.disconnect()
+        # await ctx.send(f"Yukino Bot has been Killed in Channel {channel} D:")
 	else:
 		# If its not in a channel at all
 		await ctx.send("Baka. Yukino is not in a Channel!")
-	await ctx.send(f"Yukino Bot has been Killed in Channel {channel} D:")
