@@ -21,7 +21,7 @@ class Manager(object):
 
     def __exit__(self, exc_type, exc_value, tb):
         if exc_type is not None:
-            pass # for now but else traceback.print_exception(exc_type, exc_value, tb)
+            return False # for now but else traceback.print_exception(exc_type, exc_value, tb)
             # then return false if u want to pass exception thru
         self.file.close() 
         return True
