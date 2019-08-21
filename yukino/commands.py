@@ -10,6 +10,7 @@ from os import listdir
 from discord.utils import get
 import os
 import random
+import youtube_dl
 # import ffmpeg
 audiodir = 'yukino/data/audiofiles/'
 webmdir = 'yukino/data/webmcache/'
@@ -28,6 +29,16 @@ audiofileext = [
 dataservers = {
     "AnimeThemes": "animethemes.moe",
     "Openings.moe": "openings.moe"
+}
+
+#youtube download options
+ydl_opts = {
+    'format': 'bestaudio/best',
+    'postprocessors': [{
+        'key': 'FFmpegExtractAudio',
+        'preferredcodec': 'mp3',
+        'preferredquality': '192',
+    }],
 }
 
 def converttoaudio(ftype, url, filename=secrets.token_hex(16), directory=audiodir, ext=audiofileext[0]):
@@ -88,18 +99,53 @@ async def _convert(ctx, url):
 @bot.command()
 async def clear(ctx, amount=1):
     await ctx.channel.purge(limit=amount)
-
-@bot.command()
-async def play(ctx, url: str):
 	
+@bot.command(pass_context=True, aliases=['p', 'pla'])
+async def play(ctx, url: str):
+
 	# If Song.mp3 exists, True.
 	# If Song.mp3 doesn't exist, False 
-	song_Exists = os.path.isfile("song.mp3")
+    song_there = os.path.isfile("song.mp3")
+    try:
+    	#If Song is in use, we go to except statement
+        if song_there:
+            os.remove("song.mp3")
+            print("Removed old song file")
+    except PermissionError:
+        print("Trying to delete song file, but it's being played")
+        await ctx.send("ERROR: Music playing")
+        return
 
-	#If True
-	if song_Exists:
-		os.remove("song.mp3")
-		await ctx.send(f"Removed Old Song file")
+    await ctx.send("Getting everything ready now")
+
+    # Gets Voice Variable
+    voice = get(bot.voice_clients, guild=ctx.guild)
+
+    # Passing in our options to youtube_dl
+    with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+        print("Downloading audio now\n")
+
+        #Downloads audio
+        ydl.download([url])
+
+    for file in os.listdir("./"):
+    	#Rename Song file to uniformed name
+        if file.endswith(".mp3"):
+
+        	#save name of file
+            name = file
+            print(f"Renamed File: {file}\n")
+            os.rename(file, "song.mp3")
+
+    # Plays the song and "after" displays message when its done
+    voice.play(discord.FFmpegPCMAudio("song.mp3"), after=lambda e: print("Song done!"))
+    voice.source = discord.PCMVolumeTransformer(voice.source)
+    voice.source.volume = 0.07
+
+    #Prints out the song that is being played
+    nname = name.rsplit("-", 2)
+    await ctx.send(f"Playing: {nname[0]}")
+    print("playing\n")
 
 
 @bot.command()
@@ -119,17 +165,6 @@ async def connect(ctx):
 
 	await ctx.send(f"Joined {channel}")
 
-	# Uncomment this code if there's a bug where you have to
-	# disconnect Yukino to play the next song
-
-	#await voice.disconnect()	
-
-	# If Yukino is already in a different voice channel and is connected, move to current channel
-	#if voice and voice.is_connected():
-	#	await voice.move_to(channel)
-	#else:
-	#	voice = await channel.connect()
-
 @bot.command(aliases=['dc', 'disc'])
 async def disconnect(ctx):
 
@@ -144,3 +179,11 @@ async def disconnect(ctx):
 	else:
 		# If its not in a channel at all
 		await ctx.send("Baka. Yukino is not in a Channel!")
+
+@bot.command(pass_context=True)
+async def yt(ctx, url):
+
+	voice_channel = ctx.message.author.voice.voice_channel
+	voice_client = await bot.join_voice_channel(voice_channel)
+
+	player = await voice_client.create_ytdl_player(url)
