@@ -7,6 +7,8 @@ import secrets
 from pydub import AudioSegment
 from pydub.utils import which
 from os import listdir
+from discord.utils import get
+import os
 # import ffmpeg
 audiodir = 'yukino/data/audiofiles/'
 webmdir = 'yukino/data/webmcache/'
@@ -76,3 +78,59 @@ async def _convert(ctx, url):
 @bot.command()
 async def clear(ctx, amount=1):
     await ctx.channel.purge(limit=amount)
+
+@bot.command(pass_context=True)
+async def play(ctx, url: str):
+	
+	# If Song.mp3 exists, True.
+	# If Song.mp3 doesn't exist, False 
+	song_Exists = os.path.isfile("song.mp3")
+
+	#If True
+	if song_Exists:
+		os.remove("song.mp3")
+		await ctx.send(f"Removed Old Song file")
+
+
+@bot.command(pass_context=True)
+async def connect(ctx):
+	global voice
+	
+	# gets the Channel we're in
+	channel = ctx.message.author.voice.channel
+
+	voice = get(bot.voice_clients, guild=ctx.guild)
+
+	# If Yukino is already in a different voice channel and is connected, move to current channel
+	if voice and voice.is_connected():
+		await voice.move_to(channel)
+	else:
+		voice = await channel.connect()
+
+	await ctx.send(f"Joined {channel}")
+
+	# Uncomment this code if there's a bug where you have to
+	# disconnect Yukino to play the next song
+
+	#await voice.disconnect()	
+
+	# If Yukino is already in a different voice channel and is connected, move to current channel
+	#if voice and voice.is_connected():
+	#	await voice.move_to(channel)
+	#else:
+	#	voice = await channel.connect()
+
+@bot.command(pass_context=True,aliases=['dc', 'disc'])
+async def disconnect(ctx):
+
+	# gets the Channel we're in
+	channel = ctx.message.author.voice.channel
+
+	voice = get(bot.voice_clients, guild=ctx.guild)
+	# If Yukino is already in a different voice channel and is connected, disconnect it
+	if voice and voice.is_connected():
+		await voice.disconnect()
+	else:
+		# If its not in a channel at all
+		await ctx.send("Baka. Yukino is not in a Channel!")
+	await ctx.send(f"Yukino Bot has been Killed in Channel {channel} D:")
