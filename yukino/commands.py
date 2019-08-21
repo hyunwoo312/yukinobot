@@ -1,12 +1,10 @@
-from yukino import bot
+from yukino import bot, manager
 from discord.ext import commands
 import discord
 import requests
-from yukino import manager
 import secrets
 from pydub import AudioSegment
 from pydub.utils import which
-from os import listdir
 from discord.utils import get
 import os
 import random
@@ -30,6 +28,8 @@ dataservers = {
     "Openings.moe": "openings.moe"
 }
 
+players = {}
+
 def converttoaudio(ftype, url, filename=secrets.token_hex(16), directory=audiodir, ext=audiofileext[0]):
     '''
     filename is defaulted to a 16-hex randomized string;; filename must be a string
@@ -43,10 +43,10 @@ def converttoaudio(ftype, url, filename=secrets.token_hex(16), directory=audiodi
     try:
         audiofile = directory+ftype+'/'+filename+ext
         webmfile = webmdir+filename+audiofileext[1]
-        if filename+ext in listdir(audiodir+ftype):
+        if filename+ext in os.listdir(audiodir+ftype):
             return discord.File(audiofile, spoiler=False)
         else:
-            if filename+audiofileext[1] not in listdir(webmdir):
+            if filename+audiofileext[1] not in os.listdir(webmdir):
                 with manager.Manager(webmfile, 'wb') as file:
                     r = requests.get(url, allow_redirects=True)
                     file.write(r.content)
@@ -69,6 +69,15 @@ def cachemanager(directory):
 async def test(ctx, *, arg):
     await ctx.send(arg)
 
+@bot.command()
+async def clear(ctx, amount=1):
+    await ctx.channel.purge(limit=amount)
+
+@bot.command()
+async def ping(ctx):
+    pong = bot.latency * 1000
+    await ctx.send('the current ping is {:.5}ms'.format(pong))
+
 @bot.command(aliases=['conv', 'cv', 'convert'])
 async def _convert(ctx, url):
     async with ctx.typing():
@@ -83,11 +92,32 @@ async def _convert(ctx, url):
                 'File conversion complete! The following is the converted {} file of {}'
                 .format(audiofileext[0][1:], filename), file=audiofile)
         except:
-            await ctx.send('∑（｡･Д･｡）??? The File Conversion Has Failed. ( •᷄ὤ•᷅)？')
+            ctx.send('∑（｡･Д･｡）??? The File Conversion Has Failed. ( •᷄ὤ•᷅)？')
 
 @bot.command()
-async def clear(ctx, amount=1):
-    await ctx.channel.purge(limit=amount)
+async def anilist(ctx):
+    query = '''
+    query ($id: Int) {
+    Media (id: $id, type: ANIME) { 
+        id
+        title {
+        romaji
+        english
+        native
+        }
+    }
+    }
+    '''
+
+    # Define our query variables and values that will be used in the query request
+    variables = {
+        'id': 10087#,
+        #'search': 'Katanagatari'
+    }
+    url = 'https://graphql.anilist.co'
+
+    response = requests.post(url, json={'query': query, 'variables': variables})
+    await ctx.send(response.json())
 
 @bot.command()
 async def play(ctx, url: str):
@@ -102,7 +132,7 @@ async def play(ctx, url: str):
 		await ctx.send(f"Removed Old Song file")
 
 
-@bot.command()
+@bot.command(aliases=['join'])
 async def connect(ctx):
 	global voice
 	
