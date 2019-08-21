@@ -54,10 +54,10 @@ def converttoaudio(ftype, url, filename=secrets.token_hex(16), directory=audiodi
     try:
         audiofile = directory+ftype+'/'+filename+ext
         webmfile = webmdir+filename+audiofileext[1]
-        if filename+ext in listdir(audiodir+ftype):
+        if filename+ext in os.listdir(audiodir+ftype):
             return discord.File(audiofile, spoiler=False)
         else:
-            if filename+audiofileext[1] not in listdir(webmdir):
+            if filename+audiofileext[1] not in os.listdir(webmdir):
                 with manager.Manager(webmfile, 'wb') as file:
                     r = requests.get(url, allow_redirects=True)
                     file.write(r.content)
@@ -80,6 +80,15 @@ def cachemanager(directory):
 async def test(ctx, *, arg):
     await ctx.send(arg)
 
+@bot.command()
+async def clear(ctx, amount=1):
+    await ctx.channel.purge(limit=amount)
+
+@bot.command()
+async def ping(ctx):
+    pong = bot.latency * 1000
+    await ctx.send('the current ping is {:.5}ms'.format(pong))
+
 @bot.command(aliases=['conv', 'cv', 'convert'])
 async def _convert(ctx, url):
     async with ctx.typing():
@@ -94,11 +103,32 @@ async def _convert(ctx, url):
                 'File conversion complete! The following is the converted {} file of {}'
                 .format(audiofileext[0][1:], filename), file=audiofile)
         except:
-            await ctx.send('∑（｡･Д･｡）??? The File Conversion Has Failed. ( •᷄ὤ•᷅)？')
+            ctx.send('∑（｡･Д･｡）??? The File Conversion Has Failed. ( •᷄ὤ•᷅)？')
 
 @bot.command()
-async def clear(ctx, amount=1):
-    await ctx.channel.purge(limit=amount)
+async def anilist(ctx):
+    query = '''
+    query ($id: Int) {
+    Media (id: $id, type: ANIME) { 
+        id
+        title {
+        romaji
+        english
+        native
+        }
+    }
+    }
+    '''
+
+    # Define our query variables and values that will be used in the query request
+    variables = {
+        'id': 10087#,
+        #'search': 'Katanagatari'
+    }
+    url = 'https://graphql.anilist.co'
+
+    response = requests.post(url, json={'query': query, 'variables': variables})
+    await ctx.send(response.json())
 	
 @bot.command(pass_context=True, aliases=['p', 'pla'])
 async def play(ctx, url: str):
@@ -182,8 +212,30 @@ async def disconnect(ctx):
 
 @bot.command(pass_context=True)
 async def yt(ctx, url):
-
-	voice_channel = ctx.message.author.voice.voice_channel
-	voice_client = await bot.join_voice_channel(voice_channel)
-
-	player = await voice_client.create_ytdl_player(url)
+ 
+    song_there = os.path.isfile("song.mp3")
+    try:
+        if song_there:
+            os.remove("song.mp3")
+    except PermissionError:
+        await ctx.send("Wait for the current playing music end or use the 'stop' command")
+        return
+    await ctx.send("Getting everything ready, playing audio soon")
+    print("Someone wants to play music let me get that ready for them...")
+    voice = get(bot.voice_clients, guild=ctx.guild)
+    ydl_opts = {
+        'format': 'bestaudio/best',
+        'postprocessors': [{
+            'key': 'FFmpegExtractAudio',
+            'preferredcodec': 'mp3',
+            'preferredquality': '192',
+        }],
+    }
+    with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+        ydl.download([url])
+    for file in os.listdir("./"):
+        if file.endswith(".mp3"):
+            os.rename(file, 'song.mp3')
+    voice.play(discord.FFmpegPCMAudio("song.mp3"))
+    voice.volume = 100
+    voice.is_playing()
