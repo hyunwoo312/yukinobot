@@ -1,3 +1,6 @@
 {
-    "python.pythonPath": "bot-env/bin/python3"
+    "python.pythonPath": "C:\\Python3.7_64bit\\python.exe",
+    "python.linting.pylintEnabled": false,
+    "python.linting.pep8Enabled": true,
+    "python.linting.enabled": true
 }

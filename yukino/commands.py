@@ -119,7 +119,7 @@ async def anilist(ctx):
     }
     }
     '''
-
+	
     # Define our query variables and values that will be used in the query request
     variables = {
         'id': 10087#,
