@@ -224,7 +224,7 @@ async def disconnect(ctx):
 		await ctx.send("Baka. Yukino is not in a Channel!")
 
 @bot.command(pass_context=True)
-async def test(ctx, url):
+async def _test(ctx, url):
 	global voice
 
 	# gets the Channel we're in
