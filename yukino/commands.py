@@ -8,6 +8,7 @@ from pydub import AudioSegment
 from pydub.utils import which
 from os import listdir
 from discord.utils import get
+from datetime import datetime
 import os
 import random
 import youtube_dl
@@ -15,6 +16,7 @@ import youtube_dl
 audiodir = 'yukino/data/audiofiles/'
 webmdir = 'yukino/data/cache/'
 queriesdir = 'yukino/data/queries/'
+today = datetime.today().isoformat().split('T')[0] # 'YYYY-MM-DD'
 audiotype = [
     'Openings',
     'Endings', 
@@ -109,7 +111,7 @@ async def _convert(ctx, url):
             await ctx.send('∑（｡･Д･｡）??? The File Conversion Has Failed. ( •᷄ὤ•᷅)？')
 
 @bot.command(aliases=['al'])
-async def AnimeList(ctx, id):
+async def AniList(ctx, id):
     variables = {'id':int(id)}
     with manager.Manager(queriesdir+'AL_test.txt') as file:
         query = file.read()
@@ -123,7 +125,7 @@ async def AnimeList(ctx, id):
     await ctx.send(title1+' '+title2)
 
 @bot.command(aliases=['mal'])
-async def MyAnimeList(ctx, action, _type, *, arg=None, **kwarg):
+async def MyAnimeList(ctx, action, _type, *, arg=None):
     '''
     MyAnimeList's official API has been down for an extended period of time.
     I was planning on doing my own webscraping to do queries and other various
@@ -149,26 +151,42 @@ async def MyAnimeList(ctx, action, _type, *, arg=None, **kwarg):
                             seasons, years
                         )
                     )
+                elif _type == 'profile':
+                    profile = jikan.user(username=arg)
+                    await ctx.send(profile)
             # searches MAL for several things
             elif action == 'search':
                 if _type not in ['anime', 'manga', 'person', 'character']:
                     raise ValueError
+                await ctx.send('Search Results:\n')
+                # using jikan to search
+                seach_result = jikan.search(_type, arg, parameters={'limit':3})
+                top3res = seach_result['results']
                 if _type == 'anime':
-                    await ctx.send('Search Results:\n')
-                    seach_result = jikan.search(_type, arg, parameters={'limit':3})
-                    top3res = seach_result['results']
                     for anime in top3res:
                         status = 'Airing'
                         if anime['airing'] == False:
-                            status = 'Aired from {} to {}'.format(anime['start_date'], anime['end_date'])
-                        response = 'Anime: {} {}\nStatus: {}\nScore: {}\nSynopsis: {}\n\n'.format(
-                            anime['title'] ,anime['url'], status, anime['score'], anime['synopsis']
+                            status = 'Aired from {} to {}'.format(
+                                anime['start_date'].split('T')[0], anime['end_date'].split('T')[0]
+                            )
+                        else: # true
+                            if today < anime['start_date'].split('T')[0]:
+                                status = 'To be aired'
+                        score = 'N/A' if anime['score'] == 0 else anime['score']
+                        response = '>>> {}\n{}\nStatus: {}\nScore: {}\nSynopsis: {}\n\n'.format(
+                            anime['title'] ,anime['url'], status, score, anime['synopsis']
                         )
                         await ctx.send(response)
+                elif _type == 'manga':
+                    pass
+                elif _type == 'person':
+                    pass
+                else: #'character':
+                    pass
             else:
                 raise Exception
     except:
-        await ctx.send('... there is an error. Perhaps check the parameters. - 雪ノ下雪乃')
+        await ctx.send('... there is an error. Perhaps check for typos. - 雪ノ下雪乃')
 	
 @bot.command(pass_context=True, aliases=['p', 'pla'])
 async def play(ctx, url: str):
