@@ -152,15 +152,21 @@ async def MyAnimeList(ctx, action, _type, *, arg=None):
                         )
                     )
                 elif _type == 'profile':
-                    profile = jikan.user(username=arg, request='profile')
+                    profile = jikan.user(username=arg, request=_type)
                     await ctx.send(profile)
+                elif _type == 'animelist':
+                    animelist = jikan.user(username=arg, request=_type)['anime'] #argument parameter eg completed
+                    _list = ''
+                    for anime in animelist:
+                        _list += '|'+anime['title']+'|'
+                    await ctx.send(_list)
             # searches MAL for several things
             elif action == 'search':
                 if _type not in ['anime', 'manga', 'person', 'character']:
                     raise ValueError
                 await ctx.send('Search Results:\n')
                 # using jikan to search
-                seach_result = jikan.search(_type, arg, parameters={'limit':3})
+                seach_result = jikan.search(_type, arg, parameters={'limit':3, 'order_by':'title'})
                 top3res = seach_result['results']
                 if _type == 'anime':
                     for anime in top3res:
@@ -183,11 +189,6 @@ async def MyAnimeList(ctx, action, _type, *, arg=None):
                     pass
                 else: #'character':
                     pass
-            elif action == 'animelist':
-                '''
-                _type = all, watching ,completed, onhold, dropped, plantowatch
-                '''
-                animelist = jikan.user(username=arg, request='animelist', argument=_type)['anime']
             else:
                 raise Exception
     except:
