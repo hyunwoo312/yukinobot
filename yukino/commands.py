@@ -152,7 +152,7 @@ async def MyAnimeList(ctx, action, _type, *, arg=None):
                         )
                     )
                 elif _type == 'profile':
-                    profile = jikan.user(username=arg)
+                    profile = jikan.user(username=arg, request='profile')
                     await ctx.send(profile)
             # searches MAL for several things
             elif action == 'search':
@@ -183,6 +183,11 @@ async def MyAnimeList(ctx, action, _type, *, arg=None):
                     pass
                 else: #'character':
                     pass
+            elif action == 'animelist':
+                '''
+                _type = all, watching ,completed, onhold, dropped, plantowatch
+                '''
+                animelist = jikan.user(username=arg, request='animelist', argument=_type)['anime']
             else:
                 raise Exception
     except:
