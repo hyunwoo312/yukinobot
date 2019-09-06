@@ -157,8 +157,8 @@ async def MyAnimeList(ctx, action, _type, *, arg=None):
                 elif _type == 'animelist':
                     animelist = jikan.user(username=arg, request=_type)['anime'] #argument parameter eg completed
                     _list = ''
-                    for anime in animelist:
-                        _list += '|'+anime['title']+'|'
+                    for i in animelist:
+                        _list =  _list+'|'+i['title']+'|'
                     await ctx.send(_list)
             # searches MAL for several things
             elif action == 'search':
