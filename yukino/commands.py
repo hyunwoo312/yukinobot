@@ -1,4 +1,4 @@
-from yukino import bot
+from yukino import bot, jikan
 from discord.ext import commands
 import discord
 import requests
@@ -8,12 +8,15 @@ from pydub import AudioSegment
 from pydub.utils import which
 from os import listdir
 from discord.utils import get
+from datetime import datetime
 import os
 import random
 import youtube_dl
 # import ffmpeg
 audiodir = 'yukino/data/audiofiles/'
-webmdir = 'yukino/data/webmcache/'
+webmdir = 'yukino/data/cache/'
+queriesdir = 'yukino/data/queries/'
+today = datetime.today().isoformat().split('T')[0] # 'YYYY-MM-DD'
 audiotype = [
     'Openings',
     'Endings', 
@@ -28,7 +31,9 @@ audiofileext = [
 
 dataservers = {
     "AnimeThemes": "animethemes.moe",
-    "Openings.moe": "openings.moe"
+    "Openings.moe": "openings.moe",
+    "AniList": "https://graphql.anilist.co/",
+    "MyAnimeList": "https://myanimelist.net/animelist/"
 }
 
 #youtube download options
@@ -103,32 +108,91 @@ async def _convert(ctx, url):
                 'File conversion complete! The following is the converted {} file of {}'
                 .format(audiofileext[0][1:], filename), file=audiofile)
         except:
-            ctx.send('∑（｡･Д･｡）??? The File Conversion Has Failed. ( •᷄ὤ•᷅)？')
+            await ctx.send('∑（｡･Д･｡）??? The File Conversion Has Failed. ( •᷄ὤ•᷅)？')
 
-@bot.command()
-async def anilist(ctx):
-    query = '''
-    query ($id: Int) {
-    Media (id: $id, type: ANIME) { 
-        id
-        title {
-        romaji
-        english
-        native
-        }
-    }
-    }
+@bot.command(aliases=['al'])
+async def AniList(ctx, id):
+    variables = {'id':int(id)}
+    with manager.Manager(queriesdir+'AL_test.txt') as file:
+        query = file.read()
     '''
+    posts a GraphQL query to Anilist
+    serialize the file as a json response then returns the titles
+    '''
+    response = requests.post(dataservers["AniList"], json={'query':query, 'variables':variables}).json()
+    title1 = response['data']['Media']['title']['english']
+    title2 = response['data']['Media']['title']['native']
+    await ctx.send(title1+' '+title2)
 
-    # Define our query variables and values that will be used in the query request
-    variables = {
-        'id': 10087#,
-        #'search': 'Katanagatari'
-    }
-    url = 'https://graphql.anilist.co'
-
-    response = requests.post(url, json={'query': query, 'variables': variables})
-    await ctx.send(response.json())
+@bot.command(aliases=['mal'])
+async def MyAnimeList(ctx, action, _type, *, arg=None):
+    '''
+    MyAnimeList's official API has been down for an extended period of time.
+    I was planning on doing my own webscraping to do queries and other various
+    functions, but I found a Jikan's unofficial MAL api python wrapper.
+    This command will use Jikan's python MAL api.
+    Available action parameters are:
+    seasons/years; search; 
+    '''
+    try:
+        async with ctx.typing():
+            action = action.lower()
+            _type = _type.lower()
+            if action == 'request':
+                # returns years and seasons for which MAL has anime data
+                if _type == 'seasons' or _type == 'years':
+                    malseasonarchive = jikan.season_archive()['archive']
+                    years = []
+                    seasons = malseasonarchive[0]['seasons']
+                    for archive in malseasonarchive:
+                            years.append(archive['year'])
+                    await ctx.send(
+                        'The following are the years and seasons for which MyAnimeList has anime data:\nSeasons = {}\nYears = {}'.format(
+                            seasons, years
+                        )
+                    )
+                elif _type == 'profile':
+                    profile = jikan.user(username=arg, request=_type)
+                    await ctx.send(profile)
+                elif _type == 'animelist':
+                    animelist = jikan.user(username=arg, request=_type)['anime'] #argument parameter eg completed
+                    _list = ''
+                    for i in animelist:
+                        _list =  _list+'|'+i['title']+'|'
+                    await ctx.send(_list)
+            # searches MAL for several things
+            elif action == 'search':
+                if _type not in ['anime', 'manga', 'person', 'character']:
+                    raise ValueError
+                await ctx.send('Search Results:\n')
+                # using jikan to search
+                seach_result = jikan.search(_type, arg, parameters={'limit':3, 'order_by':'title'})
+                top3res = seach_result['results']
+                if _type == 'anime':
+                    for anime in top3res:
+                        status = 'Airing'
+                        if anime['airing'] == False:
+                            status = 'Aired from {} to {}'.format(
+                                anime['start_date'].split('T')[0], anime['end_date'].split('T')[0]
+                            )
+                        else: # true
+                            if today < anime['start_date'].split('T')[0]:
+                                status = 'To be aired'
+                        score = 'N/A' if anime['score'] == 0 else anime['score']
+                        response = '>>> {}\n{}\nStatus: {}\nScore: {}\nSynopsis: {}\n\n'.format(
+                            anime['title'] ,anime['url'], status, score, anime['synopsis']
+                        )
+                        await ctx.send(response)
+                elif _type == 'manga':
+                    pass
+                elif _type == 'person':
+                    pass
+                else: #'character':
+                    pass
+            else:
+                raise Exception
+    except:
+        await ctx.send('... there is an error. Perhaps check for typos. - 雪ノ下雪乃')
 	
 @bot.command(pass_context=True, aliases=['p', 'pla'])
 async def play(ctx, url: str):
@@ -224,7 +288,7 @@ async def disconnect(ctx):
 		await ctx.send("Baka. Yukino is not in a Channel!")
 
 @bot.command(pass_context=True)
-async def test(ctx, url):
+async def _test(ctx, url):
 	global voice
 
 	# gets the Channel we're in
