@@ -310,22 +310,6 @@ async def connect(ctx):
 	await ctx.send(f"Joined {channel}")
 
 
-@bot.command(aliases=['dc', 'disc'])
-async def disconnect(ctx):
-
-    # gets the Channel we're in
-    channel = ctx.message.author.voice.channel
-
-    voice = get(bot.voice_clients, guild=ctx.guild)
-    # If Yukino is already in a different voice channel and is connected, disconnect it
-    if voice and voice.is_connected():
-        await voice.disconnect()
-    # await ctx.send(f"Yukino Bot has been Killed in Channel {channel} D:")
-    else:
-        # If its not in a channel at all
-        await ctx.send("Baka. Yukino is not in a Channel!")
-
-
 @bot.command()
 async def _test(ctx, url):
     print("DannyIsGod")
