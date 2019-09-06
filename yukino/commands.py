@@ -297,17 +297,25 @@ Parameters: Ctx
 '''
 async def connect(ctx):
 
-	# gets the Channel we're in
-	channel = ctx.message.author.voice.channel
+    # gets the Channel we're in
+    channel = ctx.message.author.voice.channel
+    channelId = ctx.message.author.voice.session_id
 
-	voice = get(bot.voice_clients, guild=ctx.guild)
+    # Starts off as None Object. However, gets an object onces connected to a channel
+    voice = get(bot.voice_clients, guild=ctx.guild)
 
-	# If Yukino is already in a different voice channel and is connected, move to current channel
-	if voice and voice.is_connected():
-		await voice.move_to(channel)
-	else:
-		voice = await channel.connect()
-	await ctx.send(f"Joined {channel}")
+    #If Yukino is connected and in the same channel
+    if voice and voice.is_connected() and channelId != voice.session_id:
+        pass
+    # If Yukino is already in a different voice channel and is connected, move to current channel
+    elif voice and voice.is_connected() and channelId != voice.session_id:
+        print("I was here 7")
+        await voice.move_to(channel)
+        await ctx.send(f"Joined {channel}")
+    elif not voice:
+        print("I was here")
+        voice = await channel.connect()
+        await ctx.send(f"Joined {channel}")
 
 
 @bot.command()
